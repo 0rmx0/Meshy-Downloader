@@ -24,11 +24,20 @@
   .btn:hover:not(:disabled) { background: #2ea043; }
   .btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
   .hint { color: #6e7681; font-size: 11px; margin-top: 10px; line-height: 1.5; }
+  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .language-select { background: #161b22; color: #e6edf3; border: 1px solid #30363d;
+    border-radius: 4px; padding: 4px 6px; font-size: 11px; }
 </style>
 </head>
 <body>
+<div class="toolbar">
+  <select class="language-select" id="languageSelect" aria-label="Language">
+    <option value="fr">Français</option>
+    <option value="en">English</option>
+  </select>
+</div>
 <h1>🔓 Meshy Downloader</h1>
-<p>Ouvre une page de modèle Meshy pour activer le téléchargement.</p>
+<p id="intro">Ouvre une page de modèle Meshy pour activer le téléchargement.</p>
 
 <div class="status">
   <span class="dot dot-idle" id="dot"></span>
@@ -38,7 +47,7 @@
 <div id="fileList"></div>
 <button class="btn" id="btnDl" disabled onclick="downloadAll()">⬇️ Tout télécharger</button>
 
-<p class="hint" id="hint">💡 Navigue vers une page de modèle Meshy.<br>La visionneuse 3D doit charger le modèle.</p>
+<p class="hint" id="hint">💡 Navigue vers une page de modèle Meshy.</p>
 
 <script src="popup.js"></script>
 </body>
