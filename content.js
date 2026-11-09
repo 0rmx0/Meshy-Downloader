@@ -123,7 +123,7 @@
   function openDB() {
     return new Promise((res, rej) => {
       if (_db) { res(_db); return; }
-      const r = indexedDB.open('meshy_dl', 2);
+      const r = indexedDB.open('meshy_dl', 3);
       r.onupgradeneeded = e => {
         const d = e.target.result;
         if (!d.objectStoreNames.contains('files')) d.createObjectStore('files');
