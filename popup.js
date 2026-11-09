@@ -7,7 +7,11 @@ async function readFromPageIDB(tabId) {
     target: { tabId },
     world: 'MAIN',
     func: () => new Promise(resolve => {
-      const r = indexedDB.open('meshy_dl', 2);
+      const r = indexedDB.open('meshy_dl', 3);
+      r.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('files')) db.createObjectStore('files');
+      };
       r.onsuccess = e => {
         const db = e.target.result;
         const tx = db.transaction('files', 'readonly');
@@ -94,7 +98,11 @@ window.downloadAll = async function() {
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
       }
       const db = await new Promise((res, rej) => {
-        const r = indexedDB.open('meshy_dl', 2);
+        const r = indexedDB.open('meshy_dl', 3);
+        r.onupgradeneeded = e => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('files')) db.createObjectStore('files');
+        };
         r.onsuccess = e => res(e.target.result);
         r.onerror = rej;
       });
