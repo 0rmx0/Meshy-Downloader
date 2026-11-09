@@ -97,6 +97,30 @@
     });
   }
 
+  function storeTexture(name, buf) {
+    if (state.textures.some(t => t.name === name)) return;
+    state.textures.push({ name, buf: buf.slice(0) });
+    console.log('[Meshy DL] 🖼️ Texture:', name, (buf.byteLength/1024).toFixed(0), 'KB');
+    saveToIDB();
+  }
+
+  // Capture PNG blobs before the viewer exposes them as blob: URLs.
+  const _createObjectURL = URL.createObjectURL;
+  URL.createObjectURL = function(object) {
+    const url = _createObjectURL.call(this, object);
+    if (object instanceof Blob && object.type.toLowerCase() === 'image/png') {
+      object.arrayBuffer().then(buf => {
+        let index = 1;
+        let name = `texture_${index}.png`;
+        while (state.textures.some(t => t.name === name)) {
+          name = `texture_${++index}.png`;
+        }
+        storeTexture(name, buf);
+      }).catch(() => {});
+    }
+    return url;
+  };
+
   // ── Patch fetch pour les textures ──────────────────────────────────────────
   const _fetch = window.fetch;
   window.fetch = async function(...args) {
@@ -106,11 +130,7 @@
     if (url.includes('assets.meshy.ai') && url.includes('.png')) {
       resp.clone().arrayBuffer().then(buf => {
         const name = url.split('/').pop().split('?')[0];
-        if (!state.textures.find(t => t.name === name)) {
-          state.textures.push({ name, buf: buf.slice(0) });
-          console.log('[Meshy DL] 🖼️ Texture:', name, (buf.byteLength/1024).toFixed(0), 'KB');
-          saveToIDB();
-        }
+        storeTexture(name, buf);
       }).catch(() => {});
     }
     return resp;
