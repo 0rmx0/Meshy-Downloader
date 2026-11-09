@@ -4,6 +4,11 @@
   'use strict';
 
   const state = { glb: null, textures: [], modelName: '', status: 'idle' };
+  const buttonText = {
+    fr: { waiting: '⏳ Pas encore prêt...', download: 'Télécharger' },
+    en: { waiting: '⏳ Not ready yet...', download: 'Download' }
+  };
+  let language = localStorage.getItem('__meshyDLLanguage') === 'en' ? 'en' : 'fr';
 
   // ── Patch Worker ────────────────────────────────────────────────────────────
   // On intercepte new Worker('/resource/decrypt/loader-worker.min.js')
@@ -237,17 +242,14 @@
     btn.onclick = event => {
       if (dragStart) return;
       if (state.status !== 'ready') {
-        btn.textContent = '⏳ Pas encore prêt...';
+        btn.textContent = buttonText[language].waiting;
         return;
       }
       downloadAll();
     };
 
     window.addEventListener('__meshyDLReady', () => {
-      const texInfo = state.textures.length > 0 ? ` + ${state.textures.length} tex` : '';
-      btn.textContent = `⬇️ GLB${texInfo} — Télécharger`;
-      btn.style.background = '#1f6feb';
-      btn.style.border = '2px solid #58a6ff';
+      updateBtn();
     });
 
     document.body?.appendChild(btn);
@@ -272,11 +274,28 @@
     const btn = document.getElementById('__meshyDLBtn');
     if (btn) {
       const texInfo = state.textures.length > 0 ? ` + ${state.textures.length} tex` : '';
-      btn.textContent = `⬇️ GLB${texInfo} — Télécharger`;
+      btn.textContent = `⬇️ GLB${texInfo} — ${buttonText[language].download}`;
       btn.style.background = '#1f6feb';
       btn.style.border = '2px solid #58a6ff';
     }
   }
+
+  window.addEventListener('__meshyDLLanguageChanged', event => {
+    if (event.detail !== 'fr' && event.detail !== 'en') {
+      return;
+    } 
+    language = event.detail;
+    try {
+      localStorage.setItem('__meshyDLLanguage', language);
+    } catch (e) {}
+    
+    const btn = document.getElementById('__meshyDLBtn');
+    if (state.status === 'ready') {
+      updateBtn();
+    } else if (btn) {
+      btn.textContent = buttonText[language].waiting;
+    }
+  });
 
   // Attend que le body soit dispo
   if (document.body) injectBtn();
