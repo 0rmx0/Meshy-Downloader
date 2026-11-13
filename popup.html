@@ -36,9 +36,11 @@
 </div>
 
 <div id="fileList"></div>
-<button class="btn" id="btnDl" disabled onclick="downloadAll()">⬇️ Tout télécharger</button>
+<button class="btn" id="btnDl" disabled>⬇️ Tout télécharger</button>
+<button class="btn" id="btnLive" style="background:#8957e5">🧪 Capturer la scène actuelle</button>
 
 <p class="hint" id="hint">💡 Navigue vers une page de modèle Meshy.<br>La visionneuse 3D doit charger le modèle.</p>
+<p class="hint">🧪 = expérimental : tente de récupérer le modèle tel qu'affiché à l'écran (avec édition en cours), sans dépendre du worker de déchiffrement. Peut échouer selon la page — regarde la console pour le détail.</p>
 
 <script src="popup.js"></script>
 </body>
