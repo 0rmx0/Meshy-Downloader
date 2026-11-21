@@ -64,7 +64,11 @@
     // avec la signature glTF, où qu'il se trouve dans le message.
     const buf = findGlbBuffer(data);
     if (!buf || buf.byteLength < 4) return;
+    await captureGlb(buf, 'worker ' + workerUrl);
+  }
 
+  // Capture commune à toutes les sources (worker, fetch, XHR)
+  async function captureGlb(buf, source) {
     const newGlb = buf.slice(0);
     // Comparaison par hash (SHA-256) plutôt qu'octet par octet : O(n) en natif
     // au lieu d'une boucle JS de dizaines de millions d'itérations.
@@ -72,7 +76,7 @@
     if (state.glbHash && state.glbHash === newHash) return;
 
     if (state.glb) {
-      console.log('[Meshy DL] 🔄 Nouveau modèle détecté (worker:', workerUrl, '), reset textures');
+      console.log('[Meshy DL] 🔄 Nouveau modèle détecté (', source, '), reset textures');
       state.textures = [];
       state.texHashes = {};
     }
@@ -83,7 +87,7 @@
     state.status = 'ready';
     state.possiblyEdited = false;
     state.lastCaptureAt = Date.now();
-    console.log('[Meshy DL] ✅ GLB intercepté ! (', workerUrl, ')', (buf.byteLength/1024/1024).toFixed(2), 'MB');
+    console.log('[Meshy DL] ✅ GLB intercepté ! (', source, ')', (buf.byteLength/1024/1024).toFixed(2), 'MB');
 
     saveToIDB().then(() => {
       updateBtn();
@@ -200,27 +204,100 @@
     }
   };
 
-  // ── Patch fetch pour les textures ──────────────────────────────────────────
+  // ── Patch fetch + XHR : capture réseau (GLB + textures) ──────────────────────────────────────────
   const _fetch = window.fetch;
-  const TEX_EXT = { png: true, jpg: true, jpeg: true, webp: true };
+  const TEX_EXT = { png: true, jpg: true, jpeg: true, webp: true, avif: true };
+  const MODEL_EXT = { glb: true, gltf: true };
+
+  function isMeshyHost(hostname) {
+    return hostname === 'meshy.ai' || hostname.endsWith('.meshy.ai');
+  }
+
+  function reqHeader(headers, name) {
+    if (!headers) return null;
+    if (typeof headers.get === 'function') return headers.get(name);
+    if (Array.isArray(headers)) {
+      const h = headers.find(([k]) => String(k).toLowerCase() === name);
+      return h ? h[1] : null;
+    }
+    if (typeof headers === 'object') {
+      const k = Object.keys(headers).find(k => k.toLowerCase() === name);
+      return k ? headers[k] : null;
+    }
+    return null;
+  }
+
+  // Depuis une MAJ du site, la visionneuse charge le modèle en GLB clair par
+  // fetch/XHR (assets.meshy.ai/.../output/model.glb) sans passer par le worker
+  // de déchiffrement. On capture donc aussi les réponses réseau.
+  async function handleNetworkBuffer(urlStr, buf, contentType) {
+    let u;
+    try { u = new URL(urlStr, location.href); } catch { return; }
+    if (!isMeshyHost(u.hostname) || !buf || buf.byteLength < 4) return;
+
+    if (hasGlbMagic(buf)) {
+      // On ne garde que les GLB de modèles (pas les petites scènes d'interface
+      // type landing chargées depuis cdn.meshy.ai)
+      if (/\/(output|cdn-models)\//.test(u.pathname) || /model\.glb$/.test(u.pathname)) {
+        await captureGlb(buf, 'réseau ' + u.pathname.split('/').pop());
+      }
+      return;
+    }
+
+    const ext = u.pathname.split('.').pop().toLowerCase();
+    if (!TEX_EXT[ext] && !(contentType || '').startsWith('image/')) return;
+    const name = sanitizeFileName(u.pathname.split('/').pop());
+    if (!name || state.textures.find(t => t.name === name)) return;
+    state.texHashes[name] = await sha256(buf);
+    state.textures.push({ name, buf: buf.slice(0), mime: 'image/' + (ext === 'jpg' ? 'jpeg' : ext) });
+    console.log('[Meshy DL] 🖼️ Texture:', name, (buf.byteLength/1024).toFixed(0), 'KB');
+    saveToIDB().catch(() => {});
+  }
+
   window.fetch = async function(...args) {
     const resp = await _fetch.apply(this, args);
     try {
       const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
       const u = new URL(url, location.href);
-      const ext = u.pathname.split('.').pop().toLowerCase();
-      if ((u.hostname === 'meshy.ai' || u.hostname.endsWith('.meshy.ai')) && TEX_EXT[ext]) {
-        resp.clone().arrayBuffer().then(async buf => {
-          const name = sanitizeFileName(u.pathname.split('/').pop());
-          if (!name || state.textures.find(t => t.name === name)) return;
-          state.texHashes[name] = await sha256(buf);
-          state.textures.push({ name, buf: buf.slice(0), mime: 'image/' + (ext === 'jpg' ? 'jpeg' : ext) });
-          console.log('[Meshy DL] 🖼️ Texture:', name, (buf.byteLength/1024).toFixed(0), 'KB');
-          saveToIDB().catch(() => {});
-        }).catch(() => {});
+      if (isMeshyHost(u.hostname)) {
+        const ext = u.pathname.split('.').pop().toLowerCase();
+        const ct = resp.headers?.get?.('content-type') || '';
+        const wantsModel = MODEL_EXT[ext] || ct.includes('gltf-binary');
+        const wantsTex = TEX_EXT[ext] || ct.startsWith('image/');
+        // Requêtes partielles (Range) : on ne capture que les réponses complètes
+        const range = reqHeader(args[1]?.headers, 'range');
+        if ((wantsModel || wantsTex) && !range) {
+          resp.clone().arrayBuffer()
+            .then(buf => handleNetworkBuffer(url, buf, ct))
+            .catch(() => {});
+        }
       }
     } catch {}
     return resp;
+  };
+
+  // XHR : certaines versions du loader trois.js passent par XMLHttpRequest
+  const _xhrOpen = XMLHttpRequest.prototype.open;
+  const _xhrSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+    try { this.__meshyDLUrl = typeof url === 'string' ? url : String(url); } catch {}
+    return _xhrOpen.call(this, method, url, ...rest);
+  };
+  XMLHttpRequest.prototype.send = function(...args) {
+    if (this.__meshyDLUrl) {
+      this.addEventListener('load', () => {
+        try {
+          const ct = this.getResponseHeader('content-type') || '';
+          const resp = this.response;
+          if (resp instanceof ArrayBuffer) {
+            handleNetworkBuffer(this.__meshyDLUrl, resp, ct).catch(() => {});
+          } else if (resp instanceof Blob) {
+            resp.arrayBuffer().then(b => handleNetworkBuffer(this.__meshyDLUrl, b, ct)).catch(() => {});
+          }
+        } catch {}
+      });
+    }
+    return _xhrSend.apply(this, args);
   };
 
   // ── Helpers ────────────────────────────────────────────────────────────────
