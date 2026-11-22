@@ -1,6 +1,7 @@
 let currentTabId = null;
 let meta = null;
 let texNames = [];
+let language = localStorage.getItem('meshyDownloaderLanguage') === 'en' ? 'en' : 'fr';
 
 const DB_NAME = 'meshy_dl';
 const DB_VERSION = 3;
@@ -20,6 +21,97 @@ const ICONS = {
 function setBtn(btn, icon, label) {
   btn.innerHTML = (ICONS[icon] || '') + '<span class="btn-label"></span>';
   btn.querySelector('.btn-label').textContent = label;
+}
+
+// ── Langue (FR/EN) ──────────────────────────────────────────────────────────
+const translations = {
+  fr: {
+    intro: 'Modèles 3D CC0 depuis la visionneuse',
+    hint: 'Ouvre une page de modèle Meshy : la visionneuse 3D doit charger le modèle pour activer le téléchargement.',
+    hintLive: 'Expérimental : tente de récupérer le modèle tel qu\'affiché à l\'écran (avec édition en cours), sans dépendre du worker de déchiffrement. Peut échouer selon la page — regarde la console pour le détail.',
+    waiting: 'En attente...',
+    notOnMeshy: 'Pas sur une page Meshy',
+    ready: 'Modèle intercepté, prêt au téléchargement',
+    waitingModel: 'En attente du modèle...',
+    possiblyEdited: 'Modèle capturé, mais peut-être périmé',
+    error: 'Erreur: ',
+    readyHint: count => `${count} texture(s) interceptée(s).`,
+    editedHint: 'Une interaction a été détectée depuis la dernière capture (ajout de base, changement de matériau...). Le téléchargement classique renverra la dernière version interceptée, pas forcément ce que tu vois à l\'écran. Essaie "Capturer la scène actuelle" ci-dessous.',
+    waitingHint: 'Laisse la visionneuse 3D charger le modèle complètement.',
+    download: 'Tout télécharger',
+    downloading: 'Téléchargement...',
+    downloaded: 'Téléchargé !',
+    errorBtn: 'Erreur',
+    live: 'Capturer la scène actuelle',
+    liveBusy: 'Capture en cours...',
+    liveOk: 'Scène capturée !',
+    liveFail: 'Échec (voir console)',
+    selectLabel: 'Langue'
+  },
+  en: {
+    intro: 'CC0 3D models from the viewer',
+    hint: 'Open a Meshy model page: the 3D viewer must load the model to enable downloads.',
+    hintLive: 'Experimental: tries to grab the model as shown on screen (including ongoing edits), without relying on the decrypt worker. May fail depending on the page — check the console for details.',
+    waiting: 'Waiting...',
+    notOnMeshy: 'Not on a Meshy page',
+    ready: 'Model captured, ready to download',
+    waitingModel: 'Waiting for the model...',
+    possiblyEdited: 'Model captured, but may be outdated',
+    error: 'Error: ',
+    readyHint: count => `${count} texture(s) captured.`,
+    editedHint: 'An interaction was detected since the last capture (base added, material changed...). The regular download will return the last intercepted version, not necessarily what you see on screen. Try "Capture current scene" below.',
+    waitingHint: 'Let the 3D viewer finish loading the model.',
+    download: 'Download all',
+    downloading: 'Downloading...',
+    downloaded: 'Downloaded!',
+    errorBtn: 'Error',
+    live: 'Capture current scene',
+    liveBusy: 'Capturing...',
+    liveOk: 'Scene captured!',
+    liveFail: 'Failed (see console)',
+    selectLabel: 'Language'
+  }
+};
+
+function t() { return translations[language]; }
+
+function applyLanguage() {
+  const tr = t();
+  document.documentElement.lang = language;
+  const sel = document.getElementById('languageSelect');
+  if (sel) {
+    sel.value = language;
+    sel.setAttribute('aria-label', tr.selectLabel);
+  }
+  document.getElementById('intro').textContent = tr.intro;
+  document.getElementById('hint').textContent = tr.hint;
+  document.getElementById('hintLive').textContent = tr.hintLive;
+  setBtn(document.getElementById('btnDl'), 'download', tr.download);
+  setBtn(document.getElementById('btnLive'), 'sparkles', tr.live);
+}
+
+document.getElementById('languageSelect').addEventListener('change', event => {
+  language = event.target.value === 'en' ? 'en' : 'fr';
+  localStorage.setItem('meshyDownloaderLanguage', language);
+  applyLanguage();
+  syncLanguageToPage();
+  refresh();
+});
+
+async function syncLanguageToPage() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !tab.url || !isMeshyUrl(tab.url)) return;
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      world: 'MAIN',
+      func: selectedLanguage => {
+        try { localStorage.setItem('__meshyDLLanguage', selectedLanguage); } catch (e) {}
+        window.dispatchEvent(new CustomEvent('__meshyDLLanguageChanged', { detail: selectedLanguage }));
+      },
+      args: [language]
+    });
+  } catch (e) {}
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
@@ -146,13 +238,14 @@ function render(m, tNames) {
 }
 
 async function refresh() {
+  const tr = t();
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.url || !isMeshyUrl(tab.url)) {
       currentTabId = null;
       meta = null;
       texNames = [];
-      setStatus('idle', 'Pas sur une page Meshy');
+      setStatus('idle', tr.notOnMeshy);
       render(null, []);
       return;
     }
@@ -164,22 +257,20 @@ async function refresh() {
 
     if (meta?.status === 'ready' && meta.glbSize > 0) {
       if (meta.possiblyEdited) {
-        setStatus('waiting', 'Modèle capturé, mais peut-être périmé');
-        document.getElementById('hintText').textContent =
-          'Une interaction a été détectée depuis la dernière capture (ajout de base, changement de matériau...). Le téléchargement classique renverra la dernière version interceptée, pas forcément ce que tu vois à l\'écran. Essaie "Capturer la scène actuelle" ci-dessous.';
+        setStatus('waiting', tr.possiblyEdited);
+        document.getElementById('hint').textContent = tr.editedHint;
       } else {
-        setStatus('ready', 'Modèle intercepté, prêt au téléchargement');
-        document.getElementById('hintText').textContent = `${texNames.length} texture(s) interceptée(s).`;
+        setStatus('ready', tr.ready);
+        document.getElementById('hint').textContent = tr.readyHint(texNames.length);
       }
       render(meta, texNames);
     } else {
-      setStatus('waiting', 'En attente du modèle...');
-      document.getElementById('hintText').textContent =
-        'Laisse la visionneuse 3D charger le modèle complètement.';
+      setStatus('waiting', tr.waitingModel);
+      document.getElementById('hint').textContent = tr.waitingHint;
       render(null, []);
     }
   } catch (e) {
-    setStatus('error', 'Erreur: ' + String(e?.message || e).slice(0, 40));
+    setStatus('error', tr.error + String(e?.message || e).slice(0, 40));
   }
 }
 
@@ -187,11 +278,13 @@ async function refresh() {
 // - magic 'glTF' obligatoire pour le modèle
 // - hash SHA-256 vérifié contre celui calculé à la capture (intégrité)
 // - noms de fichiers assainis, object URLs révoqués
+// - __meshyDLSkipBlob : nos propres téléchargements ne doivent pas être
+//   re-capturés comme textures par le patch URL.createObjectURL de content.js
 async function downloadAll() {
   if (!currentTabId || !meta) return;
   const btn = document.getElementById('btnDl');
   btn.disabled = true;
-  setBtn(btn, 'loader', 'Téléchargement...');
+  setBtn(btn, 'loader', t().downloading);
   try {
     await chrome.scripting.executeScript({
       target: { tabId: currentTabId },
@@ -207,9 +300,10 @@ async function downloadAll() {
         }
         function mimeOf(n) {
           const e = String(n).split('.').pop().toLowerCase();
-          return { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' }[e] || 'image/png';
+          return { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', avif: 'image/avif' }[e] || 'image/png';
         }
         function dl(buf, name, mime) {
+          window.__meshyDLSkipBlob = true;
           const url = URL.createObjectURL(new Blob([buf], { type: mime }));
           const a = Object.assign(document.createElement('a'), { href: url, download: name });
           document.body.appendChild(a);
@@ -251,13 +345,13 @@ async function downloadAll() {
       },
       args: [meta.modelName || 'model', texNames, meta.glbHash, meta.texHashes]
     });
-    setBtn(btn, 'check', 'Téléchargé !');
+    setBtn(btn, 'check', t().downloaded);
   } catch (e) {
-    setBtn(btn, 'x', 'Erreur');
+    setBtn(btn, 'x', t().errorBtn);
   } finally {
     setTimeout(() => {
       btn.disabled = false;
-      setBtn(btn, 'download', 'Tout télécharger');
+      setBtn(btn, 'download', t().download);
     }, 2000);
   }
 }
@@ -266,7 +360,7 @@ async function tryLiveCapture() {
   if (!currentTabId) return;
   const btn = document.getElementById('btnLive');
   btn.disabled = true;
-  setBtn(btn, 'loader', 'Capture en cours...');
+  setBtn(btn, 'loader', t().liveBusy);
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId: currentTabId },
@@ -274,16 +368,17 @@ async function tryLiveCapture() {
       func: () => window.__meshyDLTryLiveCapture ? window.__meshyDLTryLiveCapture() : Promise.resolve(false)
     });
     const ok = results?.[0]?.result;
-    setBtn(btn, ok ? 'check' : 'x', ok ? 'Scène capturée !' : 'Échec (voir console)');
+    setBtn(btn, ok ? 'check' : 'x', ok ? t().liveOk : t().liveFail);
   } catch (e) {
-    setBtn(btn, 'x', 'Erreur');
+    setBtn(btn, 'x', t().errorBtn);
   }
   setTimeout(refresh, 800);
-  setTimeout(() => { btn.disabled = false; setBtn(btn, 'sparkles', 'Capturer la scène actuelle'); }, 2500);
+  setTimeout(() => { btn.disabled = false; setBtn(btn, 'sparkles', t().live); }, 2500);
 }
 
 document.getElementById('btnDl').addEventListener('click', downloadAll);
 document.getElementById('btnLive').addEventListener('click', tryLiveCapture);
 
+applyLanguage();
 refresh();
 setInterval(refresh, 2500);

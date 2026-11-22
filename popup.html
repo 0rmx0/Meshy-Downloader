@@ -38,8 +38,15 @@
     display: flex; align-items: center; justify-content: center;
   }
   .logo svg { width: 18px; height: 18px; }
+  .header-texts { flex: 1; min-width: 0; }
   .app-header h1 { font-size: 15px; font-weight: 700; line-height: 1.2; }
   .subtitle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .language-select {
+    background: var(--card); color: var(--text-2);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px 6px; font-family: inherit; font-size: 11px;
+    flex-shrink: 0; cursor: pointer;
+  }
 
   /* Status card */
   .status-card {
@@ -99,10 +106,14 @@
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
     </div>
-    <div>
+    <div class="header-texts">
       <h1>Meshy Downloader</h1>
-      <p class="subtitle">Modèles 3D CC0 depuis la visionneuse</p>
+      <p class="subtitle" id="intro">Modèles 3D CC0 depuis la visionneuse</p>
     </div>
+    <select class="language-select" id="languageSelect" aria-label="Langue">
+      <option value="fr">FR</option>
+      <option value="en">EN</option>
+    </select>
   </header>
 
   <div class="status-card">
@@ -123,11 +134,11 @@
 
   <p class="hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-    <span id="hintText">Ouvre une page de modèle Meshy : la visionneuse 3D doit charger le modèle pour activer le téléchargement.</span>
+    <span id="hint">Ouvre une page de modèle Meshy : la visionneuse 3D doit charger le modèle pour activer le téléchargement.</span>
   </p>
   <p class="hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-    <span>Expérimental : tente de récupérer le modèle tel qu'affiché à l'écran (avec édition en cours), sans dépendre du worker de déchiffrement. Peut échouer selon la page — regarde la console pour le détail.</span>
+    <span id="hintLive">Expérimental : tente de récupérer le modèle tel qu'affiché à l'écran (avec édition en cours), sans dépendre du worker de déchiffrement. Peut échouer selon la page — regarde la console pour le détail.</span>
   </p>
 
 <script src="popup.js"></script>

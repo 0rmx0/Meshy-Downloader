@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Meshy Downloader",
-  "version": "1.4",
+  "version": "1.5",
   "description": "Télécharge les modèles 3D Meshy (CC0) directement depuis la visionneuse",
   "minimum_chrome_version": "111",
   "permissions": ["scripting", "activeTab"],
