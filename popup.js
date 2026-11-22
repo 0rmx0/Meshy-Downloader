@@ -6,6 +6,8 @@ let language = localStorage.getItem('meshyDownloaderLanguage') === 'en' ? 'en' :
 const DB_NAME = 'meshy_dl';
 const DB_VERSION = 3;
 
+const api = (typeof browser !== 'undefined' && browser?.runtime) ? browser : chrome;
+
 // ── Icônes SVG (Lucide) ─────────────────────────────────────────────────────
 const SVG_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
 const ICONS = {
@@ -100,9 +102,9 @@ document.getElementById('languageSelect').addEventListener('change', event => {
 
 async function syncLanguageToPage() {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id || !tab.url || !isMeshyUrl(tab.url)) return;
-    await chrome.scripting.executeScript({
+    await api.scripting.executeScript({
       target: { tabId: tab.id },
       world: 'MAIN',
       func: selectedLanguage => {
@@ -154,7 +156,7 @@ function sanitizeTexNames(list) {
 
 // ── Lecture de l'IDB de la page (world MAIN, seul moyen d'y accéder) ────────
 async function readFromPageIDB(tabId) {
-  const results = await chrome.scripting.executeScript({
+  const results = await api.scripting.executeScript({
     target: { tabId },
     world: 'MAIN',
     func: () => new Promise(resolve => {
@@ -240,7 +242,7 @@ function render(m, tNames) {
 async function refresh() {
   const tr = t();
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
     if (!tab?.url || !isMeshyUrl(tab.url)) {
       currentTabId = null;
       meta = null;
@@ -286,7 +288,7 @@ async function downloadAll() {
   btn.disabled = true;
   setBtn(btn, 'loader', t().downloading);
   try {
-    await chrome.scripting.executeScript({
+    await api.scripting.executeScript({
       target: { tabId: currentTabId },
       world: 'MAIN',
       func: async (modelName, tNames, glbHash, texHashes) => {
@@ -362,7 +364,7 @@ async function tryLiveCapture() {
   btn.disabled = true;
   setBtn(btn, 'loader', t().liveBusy);
   try {
-    const results = await chrome.scripting.executeScript({
+    const results = await api.scripting.executeScript({
       target: { tabId: currentTabId },
       world: 'MAIN',
       func: () => window.__meshyDLTryLiveCapture ? window.__meshyDLTryLiveCapture() : Promise.resolve(false)

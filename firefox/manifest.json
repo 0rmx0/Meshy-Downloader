@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Meshy Downloader",
+  "version": "1.5",
+  "description": "Télécharge les modèles 3D Meshy (CC0) directement depuis la visionneuse",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "meshy-downloader@0rmx0.github.io",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": ["https://www.meshy.ai/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.meshy.ai/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Meshy Downloader"
+  },
+  "icons": { "16": "icon.png", "48": "icon.png", "128": "icon.png" }
+}
