@@ -6,7 +6,7 @@
 
 # English
 
-A browser extension for Chromium-based browsers that allows you to download and decrypt your generated 3D models from [Meshy.ai](https://www.meshy.ai?utm_source=chatgpt.com).
+A browser extension for Chrome, Edge, Brave and Firefox that allows you to download and decrypt your generated 3D models from [Meshy.ai](https://www.meshy.ai?utm_source=chatgpt.com).
 
 ## Why this project exists
 
@@ -21,20 +21,32 @@ This extension intercepts the encrypted 3D model data directly from the browser,
 
 * Download generated 3D models from Meshy
 * Automatically decrypt encrypted model files
-* Works directly inside Chromium-based browsers
+* Works directly inside Chrome and Firefox
 * Lightweight and easy to use
 * Fully client-side processing
 
 ## Supported Browsers
 
+* [Mozilla Firefox](https://www.mozilla.org/firefox/) 128 or newer — use the [`firefox/`](firefox/) folder
 * [Google Chrome](https://www.google.com/chrome/?utm_source=chatgpt.com)
 * [Microsoft Edge](https://www.microsoft.com/edge?utm_source=chatgpt.com)
 * [Brave Browser](https://brave.com/?utm_source=chatgpt.com)
 * Other Chromium-compatible browsers
 
+## Project structure
+
+* [`chrome/`](chrome/): Chrome/Chromium build (`manifest.json` + shared files)
+* [`firefox/`](firefox/): Firefox build — the same shared files plus a Firefox-specific `manifest.json` (`browser_specific_settings.gecko`)
+
+`content.js`, `popup.js`, `popup.html` and `icon.png` are identical in both folders; only `manifest.json` differs. Edit them in one folder, then sync the other:
+
+```bash
+cp chrome/content.js chrome/popup.js chrome/popup.html chrome/icon.png firefox/
+```
+
 ## Installation
 
-### Manual Installation (Developer Mode)
+### Chrome, Edge, Brave and other Chromium browsers
 
 ```bash id="9z28p0"
 git clone https://github.com/0rmx0/Meshy-Downloader.git
@@ -49,7 +61,26 @@ chrome://extensions
 
 3. Enable **Developer mode**
 4. Click **Load unpacked**
-5. Select the project folder
+5. Select the `chrome/` folder
+
+For the Chrome Web Store, zip the `chrome/` folder (e.g. `cd chrome && zip -r ../meshy-downloader-chrome.zip .`).
+
+### Firefox (128+)
+
+```bash
+git clone https://github.com/0rmx0/Meshy-Downloader.git
+```
+
+1. Open Firefox and go to:
+
+```text
+about:debugging#/runtime/this-firefox
+```
+
+2. Click **Load Temporary Add-on...**
+3. Select the `firefox/manifest.json` file
+
+The add-on stays loaded until Firefox restarts. For a permanent install, zip the `firefox/` folder (e.g. `cd firefox && zip -r ../meshy-downloader.xpi .`) and install the archive from `about:addons` → gear icon → **Install Add-on From File...**. A signed version published on [addons.mozilla.org](https://addons.mozilla.org/) installs the same way.
 
 ## Usage
 
@@ -94,7 +125,7 @@ This project is released under the Unlicense. You are free to use, modify, distr
 
 # Français
 
-Une extension de navigateur pour les navigateurs basés sur Chromium permettant de télécharger et déchiffrer les modèles 3D générés sur [Meshy.ai](https://www.meshy.ai?utm_source=chatgpt.com).
+Une extension de navigateur pour Chrome, Edge, Brave et Firefox permettant de télécharger et déchiffrer les modèles 3D générés sur [Meshy.ai](https://www.meshy.ai?utm_source=chatgpt.com).
 
 ## Pourquoi ce projet existe
 
@@ -109,20 +140,32 @@ Cette extension récupère le modèle 3D chiffré directement depuis le navigate
 
 * Téléchargement des modèles 3D générés sur Meshy
 * Déchiffrement automatique des fichiers
-* Compatible avec les navigateurs Chromium
+* Compatible Chrome et Firefox
 * Léger et simple à utiliser
 * Fonctionnement 100% local côté client
 
 ## Navigateurs compatibles
 
+* [Mozilla Firefox](https://www.mozilla.org/fr/firefox/) 128 ou ultérieur — utiliser le dossier [`firefox/`](firefox/)
 * [Google Chrome](https://www.google.com/chrome/?utm_source=chatgpt.com)
 * [Microsoft Edge](https://www.microsoft.com/edge?utm_source=chatgpt.com)
 * [Brave Browser](https://brave.com/?utm_source=chatgpt.com)
 * Autres navigateurs compatibles Chromium
 
+## Structure du projet
+
+* [`chrome/`](chrome/) : build Chrome/Chromium (`manifest.json` + fichiers partagés)
+* [`firefox/`](firefox/) : build Firefox — les mêmes fichiers partagés plus un `manifest.json` spécifique à Firefox (`browser_specific_settings.gecko`)
+
+`content.js`, `popup.js`, `popup.html` et `icon.png` sont identiques dans les deux dossiers ; seul `manifest.json` diffère. Modifiez-les dans un dossier, puis synchronisez l’autre :
+
+```bash
+cp chrome/content.js chrome/popup.js chrome/popup.html chrome/icon.png firefox/
+```
+
 ## Installation
 
-### Installation manuelle (mode développeur)
+### Chrome, Edge, Brave et autres navigateurs Chromium
 
 ```bash id="v4l8ke"
 git clone https://github.com/0rmx0/Meshy-Downloader.git
@@ -137,7 +180,26 @@ chrome://extensions
 
 3. Activer le **Mode développeur**
 4. Cliquer sur **Charger l’extension non empaquetée**
-5. Sélectionner le dossier du projet
+5. Sélectionner le dossier `chrome/`
+
+Pour le Chrome Web Store, zipper le dossier `chrome/` (ex. `cd chrome && zip -r ../meshy-downloader-chrome.zip .`).
+
+### Firefox (128+)
+
+```bash
+git clone https://github.com/0rmx0/Meshy-Downloader.git
+```
+
+1. Ouvrir Firefox et aller sur :
+
+```text
+about:debugging#/runtime/this-firefox
+```
+
+2. Cliquer sur **Charger un module temporaire...**
+3. Sélectionner le fichier `firefox/manifest.json`
+
+Le module reste chargé jusqu’au redémarrage de Firefox. Pour une installation permanente, zipper le dossier `firefox/` (ex. `cd firefox && zip -r ../meshy-downloader.xpi .`) puis installer l’archive depuis `about:addons` → icône engrenage → **Installer un module à partir d’un fichier...**. Une version signée publiée sur [addons.mozilla.org](https://addons.mozilla.org/) s’installe de la même manière.
 
 ## Utilisation
 
