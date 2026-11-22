@@ -35,13 +35,13 @@ This extension intercepts the encrypted 3D model data directly from the browser,
 
 ## Project structure
 
-* Repository root: the Chrome/Chromium build (`manifest.json` + shared files)
-* [`firefox/`](firefox/): the Firefox build — the same shared files plus a Firefox-specific `manifest.json` (`browser_specific_settings.gecko`)
+* [`chrome/`](chrome/): Chrome/Chromium build (`manifest.json` + shared files)
+* [`firefox/`](firefox/): Firefox build — the same shared files plus a Firefox-specific `manifest.json` (`browser_specific_settings.gecko`)
 
-`content.js`, `popup.js`, `popup.html` and `icon.png` are shared by both builds and live at the repository root. After editing them, sync the Firefox build with:
+`content.js`, `popup.js`, `popup.html` and `icon.png` are identical in both folders; only `manifest.json` differs. Edit them in one folder, then sync the other:
 
 ```bash
-cp content.js popup.js popup.html icon.png firefox/
+cp chrome/content.js chrome/popup.js chrome/popup.html chrome/icon.png firefox/
 ```
 
 ## Installation
@@ -61,7 +61,9 @@ chrome://extensions
 
 3. Enable **Developer mode**
 4. Click **Load unpacked**
-5. Select the project root folder
+5. Select the `chrome/` folder
+
+For the Chrome Web Store, zip the `chrome/` folder (e.g. `cd chrome && zip -r ../meshy-downloader-chrome.zip .`).
 
 ### Firefox (128+)
 
@@ -152,13 +154,13 @@ Cette extension récupère le modèle 3D chiffré directement depuis le navigate
 
 ## Structure du projet
 
-* Racine du dépôt : build Chrome/Chromium (`manifest.json` + fichiers partagés)
+* [`chrome/`](chrome/) : build Chrome/Chromium (`manifest.json` + fichiers partagés)
 * [`firefox/`](firefox/) : build Firefox — les mêmes fichiers partagés plus un `manifest.json` spécifique à Firefox (`browser_specific_settings.gecko`)
 
-`content.js`, `popup.js`, `popup.html` et `icon.png` sont communs aux deux builds et vivent à la racine du dépôt. Après les avoir modifiés, synchroniser le build Firefox avec :
+`content.js`, `popup.js`, `popup.html` et `icon.png` sont identiques dans les deux dossiers ; seul `manifest.json` diffère. Modifiez-les dans un dossier, puis synchronisez l’autre :
 
 ```bash
-cp content.js popup.js popup.html icon.png firefox/
+cp chrome/content.js chrome/popup.js chrome/popup.html chrome/icon.png firefox/
 ```
 
 ## Installation
@@ -178,7 +180,9 @@ chrome://extensions
 
 3. Activer le **Mode développeur**
 4. Cliquer sur **Charger l’extension non empaquetée**
-5. Sélectionner la racine du projet
+5. Sélectionner le dossier `chrome/`
+
+Pour le Chrome Web Store, zipper le dossier `chrome/` (ex. `cd chrome && zip -r ../meshy-downloader-chrome.zip .`).
 
 ### Firefox (128+)
 
