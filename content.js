@@ -4,6 +4,11 @@
   'use strict';
 
   const state = { glb: null, glbHash: null, textures: [], texHashes: {}, modelName: '', status: 'idle', possiblyEdited: false, lastCaptureAt: 0 };
+  const buttonText = {
+    fr: { waiting: '⏳ Pas encore prêt...', download: 'Télécharger', edited: 'peut être périmé' },
+    en: { waiting: '⏳ Not ready yet...', download: 'Download', edited: 'may be outdated' }
+  };
+  let language = localStorage.getItem('__meshyDLLanguage') === 'en' ? 'en' : 'fr';
 
   // ── Patch Worker ────────────────────────────────────────────────────────────
   // Historiquement on ne patchait que new Worker('/resource/decrypt/loader-worker.min.js').
@@ -452,7 +457,7 @@
     btn.onclick = event => {
       if (dragged) { dragged = false; return; } // drag = déplacement, pas un clic
       if (state.status !== 'ready') {
-        btn.textContent = '⏳ Pas encore prêt...';
+        btn.textContent = buttonText[language].waiting;
         return;
       }
       downloadAll();
@@ -485,17 +490,28 @@
     if (!btn || state.status !== 'ready') return;
     const texInfo = state.textures.length > 0 ? ` + ${state.textures.length} tex` : '';
     if (state.possiblyEdited) {
-      btn.textContent = `⚠️ GLB${texInfo} — peut être périmé`;
+      btn.textContent = `⚠️ GLB${texInfo} — ${buttonText[language].edited}`;
       btn.style.background = '#7d4e00';
       btn.style.border = '2px solid #d29922';
       btn.title = 'Le modèle a peut-être été modifié depuis cette capture (ajout de base, matériau...). Le fichier téléchargé correspondra à la dernière capture, pas forcément à ce que tu vois à l\'écran.';
     } else {
-      btn.textContent = `⬇️ GLB${texInfo} — Télécharger`;
+      btn.textContent = `⬇️ GLB${texInfo} — ${buttonText[language].download}`;
       btn.style.background = '#1f6feb';
       btn.style.border = '2px solid #58a6ff';
       btn.title = '';
     }
   }
+
+  window.addEventListener('__meshyDLLanguageChanged', event => {
+    if (event.detail !== 'fr' && event.detail !== 'en') return;
+    language = event.detail;
+    try { localStorage.setItem('__meshyDLLanguage', language); } catch (e) {}
+    updateBtn();
+    if (state.status !== 'ready') {
+      const btn = document.getElementById('__meshyDLBtn');
+      if (btn) btn.textContent = buttonText[language].waiting;
+    }
+  });
 
   // Attend que le body soit dispo
   if (document.body) injectBtn();
